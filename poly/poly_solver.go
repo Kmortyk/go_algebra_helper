@@ -25,6 +25,31 @@ func (t *Term) Eval(v float64) float64 {
 	return t.sign * t.coeff * math.Pow(v, t.pow)
 }
 
+func (t *Term) SignChar() string {
+	if t.sign > 0 {
+		return "+"
+	} else {
+		return "-"
+	}
+}
+
+func Superscript(num int) string {
+	supscr := []rune("⁰¹²³⁴⁵⁶⁷⁸⁹")
+	res := ""
+
+	if num == 0 {
+		return "⁰"
+	}
+
+	for num > 0 {
+		d := num % 10
+		res = string(supscr[d]) + res
+		num /= 10
+	}
+
+	return res
+}
+
 type Token struct {
 	val string
 	typ uint8
@@ -79,6 +104,7 @@ func (exp *Expr) GetToken() Token {
 }
 
 func (exp *Expr) Parse() []Term {
+	exp.cur = 0 // reset cursor
 	tok := exp.GetToken()
 
 	var terms []Term
@@ -96,6 +122,10 @@ func (exp *Expr) Parse() []Term {
 	for true {
 		switch tok.typ {
 		case SIGN:
+			if !coeffFlag {
+				newTerm(1)
+			}
+
 			if tok.val == "+" {
 				sign = 1
 			} else {
@@ -121,8 +151,21 @@ func (exp *Expr) Parse() []Term {
 	return terms
 }
 
+func (exp *Expr) Print() {
+	terms := exp.Parse()
+
+	for _, term := range terms {
+		fmt.Printf("%v%vx%v",
+			term.SignChar(),
+			term.coeff,
+			Superscript(int(term.pow)))
+	}
+	fmt.Println()
+}
+
 func (exp *Expr) PrintSolving(mod int) {
 	terms := exp.Parse()
+	exp.Print()
 
 	for i := 0; i < mod; i++ {
 		result := 0.0
@@ -131,11 +174,7 @@ func (exp *Expr) PrintSolving(mod int) {
 		for _, term := range terms {
 			val := term.Eval(float64(i))
 			result += val
-			if term.sign == 1 {
-				fmt.Print("+", val)
-			} else {
-				fmt.Print("-", val)
-			}
+			fmt.Print(term.SignChar(), val)
 		}
 
 		fmt.Print(" = ", result)

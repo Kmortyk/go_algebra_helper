@@ -37,6 +37,16 @@ func TestExpr_Parse(t *testing.T) {
 }
 
 func TestExpr_PrintSolving(t *testing.T) {
-	e := NewExpr("3x6+4x+2")
+	e := NewExpr("3x6+4x20+2")
 	e.PrintSolving(6)
+}
+
+func TestSuperscript(t *testing.T) {
+	num := 64
+	got := Superscript(num)
+	want := "⁶⁴"
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Superscript() = %v, want %v", got, want)
+	}
 }
