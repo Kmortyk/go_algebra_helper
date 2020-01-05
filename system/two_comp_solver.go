@@ -7,18 +7,13 @@ import (
 
 type System []comp.Expr
 
-type SystemStep struct {
-	step comp.SolveStep
-	sol  comp.Solution
-}
-
 func (s *System) AddExpr(expr comp.Expr) {
 	*s = append(*s, expr)
 }
 
 func (s *System) Solve() {
 
-	var sols = []SystemStep{}
+	var initSol comp.Solution
 	alphabet := "xyztklmnijghfrqvwpseouabcd"
 
 	// down
@@ -26,54 +21,59 @@ func (s *System) Solve() {
 		exp := (*s)[i]
 
 		fmt.Printf("=== Solve comparsion [%v]: ===\n", i+1)
-		if i > 0 {
-			prevSol := sols[i-1]
 
+		if i == 0 {
+			if !exp.Simplify() {
+				fmt.Println("!!! Check error !!!")
+				return
+			}
+			step := comp.CreateSolveStep(exp)
+			initSol = step.Solve()
+		} else {
+			// update with x solution
 			fmt.Printf("%v*(%v + %v*%v) = %v (mod %v)\n",
-				exp.A, prevSol.sol.Base, prevSol.sol.Step, string(alphabet[i]),
+				exp.A, initSol.Base, initSol.Step, string(alphabet[i]),
 				exp.B, exp.M)
 
 			fmt.Printf("%v + %v*%v = %v (mod %v)\n",
-				exp.A*prevSol.sol.Base, exp.A*prevSol.sol.Step, string(alphabet[i]),
+				exp.A*initSol.Base, exp.A*initSol.Step, string(alphabet[i]),
 				exp.B, exp.M)
 
 			fmt.Printf("%v*%v = %v (mod %v)\n\n",
-				exp.A*prevSol.sol.Step, string(alphabet[i]),
-				exp.B-exp.A*prevSol.sol.Base, exp.M)
+				exp.A*initSol.Step, string(alphabet[i]),
+				exp.B-exp.A*initSol.Base, exp.M)
 
-			newA := (exp.A * prevSol.sol.Step) % exp.M
-			newB := exp.B - (exp.A*prevSol.sol.Base)%exp.M
+			newA := (exp.A * initSol.Step) % exp.M
+			newB := exp.B - (exp.A*initSol.Base)%exp.M
 			// negative values to positive
 			for newB < 0 {
 				newB += exp.M
 			}
 
 			exp.A, exp.B = newA, newB
+			// solve
+			if !exp.Simplify() {
+				fmt.Println("!!! Check error !!!")
+				return
+			}
+			step := comp.CreateSolveStep(exp)
+			sol := step.Solve()
+			// update x solution with new
+			fmt.Println("New X:")
+			fmt.Printf("%v = %v + %v*(%v + %v*%v)\n",
+				string(alphabet[i]),
+				initSol.Base, initSol.Step,
+				sol.Base, sol.Step,
+				string(alphabet[i+1]))
+
+			initSol.Base += initSol.Step * sol.Base
+			initSol.Step *= sol.Step
 		}
-		exp.Simplify()
-		step := comp.CreateSolveStep(exp)
-		sol := step.Solve()
-		sols = append(sols, SystemStep{step, sol})
+
 		fmt.Println()
 	}
 
 	fmt.Println("=== System solution: ===")
-
-	// up
-	for i := len(sols) - 2; i >= 0; i-- {
-		nextSol := sols[i+1].sol
-		curSol := sols[i].sol
-
-		fmt.Printf("%v = %v + %v*(%v + %v*%v)\n",
-			string(alphabet[i]),
-			sols[i].sol.Base, sols[i].sol.Step,
-			nextSol.Base, nextSol.Step,
-			string(alphabet[i+1]))
-		sols[i].sol.Base += curSol.Step * nextSol.Base
-		sols[i].sol.Step *= nextSol.Step
-	}
-
 	// result
-	sol := sols[0].sol
-	fmt.Printf("x = %v (mod %v)\n", sol.Base, sol.Step)
+	fmt.Printf("x = %v (mod %v)\n", initSol.Base, initSol.Step)
 }

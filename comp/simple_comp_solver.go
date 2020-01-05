@@ -113,7 +113,7 @@ func (exp *Expr) RemoveMultiplicity() bool {
 func (exp *Expr) RemoveSemiMultiplicity() bool {
 	gcd := GCD(exp.A, exp.B)
 
-	if gcd != 1 && GCD(gcd, exp.M) == 1 {
+	if gcd != 1 && gcd != 0 && GCD(gcd, exp.M) == 1 {
 		exp.A /= gcd
 		exp.B /= gcd
 		return true
